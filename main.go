@@ -7,7 +7,10 @@ import (
 	"log"
 	"math"
 	"os"
+	"sync"
 )
+
+const FileSize = 10000
 
 func main() {
 
@@ -22,8 +25,9 @@ func main() {
 		fmt.Fprintf(file, "Hi, this is line number %v\n", i)
 	}
 
-	// Task2: call fetchLogs
-	fetchLogs("/tmp/alilog.txt", 96, 13, true)
+	// Task3: call fetchAllLogs
+	fetchAllLogs()
+
 }
 
 func fetchLogs(logFilePath string, numberOfLines, offset int64, reverse bool) {
@@ -55,7 +59,7 @@ func fetchLogs(logFilePath string, numberOfLines, offset int64, reverse bool) {
 func calcByteToReadAndOffset(numberOfLines, offset int64, reverse bool) (int64, int64) {
 	// Check reverse flag
 	if reverse {
-		offset = 10000 - numberOfLines - offset
+		offset = FileSize - numberOfLines - offset
 	}
 
 	// Calculate totalLines: sum of numberOfLines and offset
@@ -82,4 +86,24 @@ func calcByteToReadAndOffset(numberOfLines, offset int64, reverse bool) (int64, 
 	}
 
 	return byteToRead - byteOffset, byteOffset
+}
+
+func fetchAllLogs() {
+
+	const NumOfLinesChunk = 100
+	const NumOfRoutines = FileSize / NumOfLinesChunk
+
+	var wg sync.WaitGroup
+	wg.Add(NumOfRoutines)
+
+	for i := 0; i < NumOfRoutines; i++ {
+		go func(i int) {
+			defer wg.Done()
+			// Call fetchLogs
+			fetchLogs("/tmp/alilog.txt", NumOfLinesChunk, int64(NumOfLinesChunk*i), false)
+
+		}(i)
+	}
+
+	wg.Wait()
 }
